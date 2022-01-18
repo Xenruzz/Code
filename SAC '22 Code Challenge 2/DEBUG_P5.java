@@ -1,55 +1,45 @@
-//failed implementation of segment trees
 package com.company;
 
 import java.util.*;
 import java.io.*;
 
+import static java.lang.Math.*;
+
 public class Main {
 
-    static int n, q;
-    static int[] arr;
-    static int[] tree_even;
-    static int[] tree_odd;
+    static int n_odd, n_even;
+    static int[] tree_odd, tree_even;
 
     public static void main(String[] args) throws IOException {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
         StringTokenizer st = new StringTokenizer(br.readLine());
 
-        n = Integer.parseInt(st.nextToken());
-        q = Integer.parseInt(st.nextToken());
+        int t = Integer.parseInt(st.nextToken());
+        int q = Integer.parseInt(st.nextToken());
 
-        arr = new int[n];
+        n_even = (int)pow(2, ceil(log(t - t/2)/log(2)));
+        n_odd = (int)pow(2, ceil(log(t/2)/log(2)));
 
-        int size_even = (int) Math.pow(2, Math.ceil(Math.log(n - n / 2) / Math.log(2)));
-        int size_odd = (int) Math.pow(2, Math.ceil(Math.log(n / 2) / Math.log(2)));
-
-        tree_even = new int[2 * size_even];
-        tree_odd = new int[2 * size_odd];
+        tree_even = new int[2 * n_even];
+        tree_odd = new int[2 * n_odd];
 
         st = new StringTokenizer(br.readLine());
-
-        for (int i = 0; i < n; i++) {
-            arr[i] = Integer.parseInt(st.nextToken());
-
-            //construction of the bottom of the seg trees
-            if (i % 2 == 0) {
-                tree_even[size_even + i / 2] = arr[i];
-
-            } else {
-                tree_odd[size_odd + i / 2] = arr[i];
-
-            }
-        }
-
-        //consrtuct seg trees
-        for (int i = size_even - 1; i > 0; i--) {
-            tree_even[i] = tree_even[2 * i] + tree_even[2 * i + 1];
+        //fill in the bottom of the tree
+        for (int i = 0; i < t; i++) {
+            if (i % 2 == 0) tree_even[n_even + i/2] = Integer.parseInt(st.nextToken());
+            else tree_odd[n_odd + i/2] = Integer.parseInt(st.nextToken());
 
         }
 
-        for (int i = size_odd - 1; i > 0; i--) {
-            tree_odd[i] = tree_odd[2 * i] + tree_odd[2 * i + 1];
+        //complete the rest of the trees
+        for (int i = n_even - 1; i > 0; i--) {
+            tree_even[i] = tree_even[2*i] + tree_even[2*i + 1];
+
+        }
+
+        for (int i = n_odd - 1; i > 0; i--) {
+            tree_odd[i] = tree_odd[2*i] + tree_odd[2*i + 1];
 
         }
 
@@ -58,43 +48,53 @@ public class Main {
 
             int type = Integer.parseInt(st.nextToken());
 
+            int a = Integer.parseInt(st.nextToken()) - 1;
+            int b = Integer.parseInt(st.nextToken()) - 1;
+
             if (type == 1) {
-                int index = Integer.parseInt(st.nextToken()) - 1;
-                int value = Integer.parseInt(st.nextToken());
+                if (a % 2 == 0) {
+                    query_update(true, a/2, b + 1);
 
-                int[] tree = tree_even;
-                if (index % 2 != 0) tree = tree_odd;
+                } else {
+                    query_update(false, a/2, b + 1);
 
-                query_update(index/2 + tree.length/2, value, tree);
-
+                }
             } else {
-                int start = Integer.parseInt(st.nextToken()) - 1;
-                int end = Integer.parseInt(st.nextToken()) - 1;
+                if (a % 2 == 0) {
+                    System.out.println(query_sum(true, 1, 0, n_even - 1, a/2, b/2));
 
-                int[] tree = tree_even;
-                if (start % 2 != 0) tree = tree_odd;
+                } else {
+                    System.out.println(query_sum(false, 1, 0, n_odd - 1, a/2, b/2));
 
-                System.out.println(query_range(1, 0, tree.length / 2 - 1, start / 2, end / 2, tree));
-
+                }
             }
         }
     }
 
-    public static int query_range(int node_index, int node_left, int node_right, int left, int right, int[] tree) {
-        if (node_left > right || node_right < left) return 0;
+    public static int query_sum(boolean even_tree, int i, int l, int r, int q_l, int q_r) {
+        if (l > q_r || r < q_l) return 0;
 
-        if (node_left >= left && node_right <= right) return tree[node_index];
+        if (l >= q_l && r <= q_r) {
+            if (even_tree) return tree_even[i];
+            else return tree_odd[i];
 
-        int half = (node_left + node_right) / 2;
-        return query_range(node_index * 2, node_left, half, left, right, tree)
-                + query_range(node_index * 2 + 1, half + 1, node_right, left, right, tree);
+        }
+
+        int mid = (l + r)/2;
+
+        return query_sum(even_tree, 2*i, l, mid, q_l, q_r) + query_sum(even_tree, 2*i + 1, mid + 1, r, q_l, q_r);
 
     }
 
-    public static void query_update(int node_index, int value, int[] tree) {
-        tree[node_index] = value;
+    public static void query_update(boolean even_tree, int j, int k) {
+        int[] tree = tree_even;
+        if (!even_tree) tree = tree_odd;
 
-        for (int i = node_index/2; i > 0; i /= 2) {
+        int n = tree.length/2;
+
+        tree[n + j] = k;
+
+        for (int i = (n + j)/2; i > 0; i /= 2) {
             tree[i] = tree[2*i] + tree[2*i + 1];
 
         }
